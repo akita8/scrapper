@@ -1,4 +1,5 @@
-from .base import BaseModel
+"""Module contains the model classes used"""
+from scrapper.models.base import BaseModel
 
 
 class Stock(BaseModel):
