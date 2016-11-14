@@ -1,9 +1,18 @@
-from .base import BaseModel
+"""Documentation."""
+from scrapper.models.base import BaseModel
 
 
 class StockTransaction(BaseModel):
-    pass
+    """Documentation."""
+
+    def key(self):
+        """Documentation."""
+        return
 
 
 class BondTransaction(BaseModel):
-    pass
+    """Documentation."""
+
+    def key(self):
+        """Documentation."""
+        return

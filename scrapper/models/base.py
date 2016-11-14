@@ -1,6 +1,13 @@
 """Module contains base model class."""
-import datetime
+from datetime import datetime
+import logging
+import logging.config
 from scrapper.database import redis_db
+from scrapper.utils import path
+
+
+logging.config.fileConfig(path('config.ini'))
+logger = logging.getLogger('models')
 
 
 class BaseModel(object):
@@ -12,8 +19,11 @@ class BaseModel(object):
     """
 
     def __init__(self):
-        """It initializes the date variable."""
-        self.date = datetime.date.today()
+        """It initializes the datetime variable.
+
+        The variable can be overwritten by the from_db and from_dict methods.
+        """
+        self.time = datetime.today()
 
     def key(self):
         """It returns the key needed to operate on the hash."""
@@ -24,19 +34,41 @@ class BaseModel(object):
         """It returns the model type."""
         return cls.__name__.lower()
 
+    @staticmethod
+    def convert(value):
+        """It converts strings containing different type of data."""
+        datetime_pattern = '%Y-%m-%d %H:%M:%S.%f'
+        if isinstance(value, str):
+            try:
+                value = datetime.strptime(value, datetime_pattern)
+            except ValueError:
+                if value.isdigit():
+                    value = float(value)
+        elif isinstance(value, int):
+            value = float(value)
+        return value
+
+    def load_data(self, data, from_db=False):
+        """It sets data as instance attributes from either a dict or the db."""
+        if from_db:
+            data = redis_db.hgetall(data)
+        for key, value in data.items():
+            value = self.convert(value)
+            setattr(self, key, value)
+
     def key_exists(self, key):
         """It checks if the hash key is already in the model set in the db."""
         return redis_db.sismember(self.type_(), key)
 
-    def update(self, values):
+    def update(self):
         """It updates (or creates) the hash data on the redis db.
 
         It adds a new key to the model set if it's not present.
         """
         key = self.key()
         if not self.key_exists(key):
-            redis_db.saad(self.type_(), key)
-        redis_db.hmset(key, values)
+            redis_db.sadd(self.type_(), key)
+        redis_db.hmset(key, self.__dict__)
 
     def delete(self):
         """It removes the hash key and relative data from the redis db.
@@ -45,4 +77,8 @@ class BaseModel(object):
         """
         key = self.key()
         redis_db.delete(key)
-        redis_db.srem(key)
+        redis_db.srem(self.type_(), key)
+
+    def __repr__(self):
+        """Documentation."""
+        return '<{}({})>'.format(self.type_(), self.key())

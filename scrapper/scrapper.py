@@ -1,1 +1,1 @@
-"""This is the main flask app"""
+"""This is the main flask app."""
