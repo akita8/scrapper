@@ -3,57 +3,55 @@ import datetime
 import pytest
 from scrapper.database import redis_db
 from scrapper.models.base import BaseModel
+from scrapper.models.current import Stock
 
 
-@pytest.fixture(scope='module')
-def values():
-    """Fixture that returns a basic testing dict."""
-    now = datetime.datetime.today()
-    return {'time': now, 'test1': 1, 'test2': '2', 'test3': 'test'}
+now = datetime.datetime.today()
+models_params = [
+    (Stock(), {'time': str(now), 'symbol': 'test'})
+]
 
 
-@pytest.fixture
-def basemodel():
+@pytest.fixture(params=models_params)
+def models(request):
     """Fixture that returns BaseModel instance."""
-    return BaseModel()
+    return request.param
 
 
 @pytest.fixture
-def db_hash(request, values):
-    """Fixture that adds and then removesa a dict to the db for each test."""
-    values['time'] = str(values['time'])
-    print(values['time'])
-    key = 'test_basemodel'
+def db_hash(models):
+    """Fixture that adds and then removes a dict to the db for each test."""
+    _, values = models
+    key = 'test_model'
     redis_db.hmset(key, values)
-
-    def tear_down():
-        redis_db.delete(key)
-    request.addfinalizer(tear_down)
-    return key
+    yield key
+    redis_db.delete(key)
 
 
-def test_BaseModel_load_data(basemodel, values):
+def test_BaseModel_raises_TypeError():
+    """It tests that BaseModel can't be instantiated directly."""
+    with pytest.raises(TypeError):
+        BaseModel()
+
+
+def test_BaseModel_load_data(models):
     """It tests the BaseModel method load_data with flag 'from_db' false.
 
     It expects all the item of the dict passed as argument
     to be set as attributes of the instance.
     """
-    basemodel.load_data(values)
-    assert isinstance(basemodel.time, datetime.datetime)
-    assert isinstance(basemodel.test1, float)
-    assert isinstance(basemodel.test2, float)
-    assert isinstance(basemodel.test3, str)
+    model, values = models
+    model.load_data(values)
+    assert isinstance(model.time, datetime.datetime)
 
 
-def test_BaseModel_load_data_from_db(basemodel, db_hash):
+def test_BaseModel_load_data_from_db(models, db_hash):
     """It tests the BaseModel method load_data with flag 'from_db' true.
 
     It expects all the item of the hash in the redis database
     to be set as attributes of the instance.
     """
+    model, values = models
     key = db_hash
-    basemodel.load_data(key, from_db=True)
-    assert isinstance(basemodel.time, datetime.datetime)
-    assert isinstance(basemodel.test1, float)
-    assert isinstance(basemodel.test2, float)
-    assert isinstance(basemodel.test3, str)
+    model.load_data(key, from_db=True)
+    assert isinstance(model.time, datetime.datetime)

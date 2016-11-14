@@ -1,4 +1,5 @@
 """Module contains base model class."""
+import abc
 from datetime import datetime
 import logging
 import logging.config
@@ -10,7 +11,7 @@ logging.config.fileConfig(path('config.ini'))
 logger = logging.getLogger('models')
 
 
-class BaseModel(object):
+class BaseModel(metaclass=abc.ABCMeta):
     """Class that implements the common model methods.
 
     It is the application interface to the redis db.
@@ -21,35 +22,47 @@ class BaseModel(object):
     def __init__(self):
         """It initializes the datetime variable.
 
-        The variable can be overwritten by the from_db and from_dict methods.
+        The variable can be overwritten by load_data method.
         """
         self.time = datetime.today()
 
+    @abc.abstractmethod
     def key(self):
-        """It returns the key needed to operate on the hash."""
-        raise NotImplemented
+        """Abstract method that has to be overridden."""
 
     @classmethod
     def type_(cls):
-        """It returns the model type."""
+        """Class method that returns the model type."""
         return cls.__name__.lower()
 
     @staticmethod
     def convert(value):
-        """It converts strings containing different type of data."""
+        """Static method that converts strings to the proper type.
+
+        Examples:
+        '2016-11-14 11:49:09.0' --> datetime(2016, 11, 14, 11, 49, 9, 0)
+        '1.0' --> 1.0
+        '1' --> 1
+        'string' --> 'string'
+        """
         datetime_pattern = '%Y-%m-%d %H:%M:%S.%f'
         if isinstance(value, str):
             try:
                 value = datetime.strptime(value, datetime_pattern)
             except ValueError:
                 if value.isdigit():
-                    value = float(value)
-        elif isinstance(value, int):
-            value = float(value)
+                    try:
+                        value = int(value)
+                    except ValueError:
+                        value = float(value)
         return value
 
     def load_data(self, data, from_db=False):
-        """It sets data as instance attributes from either a dict or the db."""
+        """Method that sets data as instance attributes from either a dict or the db.
+
+        If the flag from_db is set to True the argument data
+        should be a string key for the hash in the db.
+        """
         if from_db:
             data = redis_db.hgetall(data)
         for key, value in data.items():
@@ -57,11 +70,11 @@ class BaseModel(object):
             setattr(self, key, value)
 
     def key_exists(self, key):
-        """It checks if the hash key is already in the model set in the db."""
+        """Method that checks if the hash key is already in the model set."""
         return redis_db.sismember(self.type_(), key)
 
     def update(self):
-        """It updates (or creates) the hash data on the redis db.
+        """Method that updates (or creates) the hash data on the redis db.
 
         It adds a new key to the model set if it's not present.
         """
@@ -71,7 +84,7 @@ class BaseModel(object):
         redis_db.hmset(key, self.__dict__)
 
     def delete(self):
-        """It removes the hash key and relative data from the redis db.
+        """Method that removes the hash key and relative data from the redis db.
 
         It also removes the key reference in the model set.
         """
