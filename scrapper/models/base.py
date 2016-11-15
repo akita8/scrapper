@@ -7,7 +7,7 @@ from scrapper.database import redis_db
 from scrapper.utils import path
 
 
-logging.config.fileConfig(path('config.ini'))
+logging.config.fileConfig(path('logger.ini'))
 logger = logging.getLogger('models')
 
 
@@ -69,7 +69,6 @@ class BaseModel(metaclass=abc.ABCMeta):
             data = redis_db.hgetall(data)
         for key, value in data.items():
             value = self.convert(value)
-            logger.info('loading data: {} type: {}'.format(value, type(value)))
             setattr(self, key, value)
 
     def key_exists(self, key):
