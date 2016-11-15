@@ -42,19 +42,21 @@ class BaseModel(metaclass=abc.ABCMeta):
         Examples:
         '2016-11-14 11:49:09.0' --> datetime(2016, 11, 14, 11, 49, 9, 0)
         '1.0' --> 1.0
-        '1' --> 1
+        '1' --> 1.0
         'string' --> 'string'
         """
         datetime_pattern = '%Y-%m-%d %H:%M:%S.%f'
         if isinstance(value, str):
             try:
-                value = datetime.strptime(value, datetime_pattern)
+                return int(value)
             except ValueError:
-                if value.isdigit():
+                try:
+                    return float(value)
+                except ValueError:
                     try:
-                        value = int(value)
+                        return datetime.strptime(value, datetime_pattern)
                     except ValueError:
-                        value = float(value)
+                        return value
         return value
 
     def load_data(self, data, from_db=False):
@@ -67,6 +69,7 @@ class BaseModel(metaclass=abc.ABCMeta):
             data = redis_db.hgetall(data)
         for key, value in data.items():
             value = self.convert(value)
+            logger.info('loading data: {} type: {}'.format(value, type(value)))
             setattr(self, key, value)
 
     def key_exists(self, key):
@@ -93,5 +96,9 @@ class BaseModel(metaclass=abc.ABCMeta):
         redis_db.srem(self.type_(), key)
 
     def __repr__(self):
-        """Documentation."""
-        return '<{}({})>'.format(self.type_(), self.key())
+        """Magic methods that returns a printable string of the model."""
+        string = '<{}({})>'
+        try:
+            return string.format(self.type_(), self.key())
+        except AttributeError:
+            return string.format(self.type_(), 'empty')

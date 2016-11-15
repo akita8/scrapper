@@ -15,14 +15,16 @@ models_params = [
 @pytest.fixture(params=models_params)
 def models(request):
     """Fixture that returns BaseModel instance."""
-    return request.param
+    testing_values = {'test1': '1', 'test2': '1.0', 'test3': 'test'}
+    param = (request.param[0], {**request.param[1], **testing_values})
+    return param
 
 
 @pytest.fixture
 def db_hash(models):
     """Fixture that adds and then removes a dict to the db for each test."""
     _, values = models
-    key = 'test_model'
+    key = '{}:test'.format(now.date())
     redis_db.hmset(key, values)
     yield key
     redis_db.delete(key)
@@ -43,6 +45,9 @@ def test_BaseModel_load_data(models):
     model, values = models
     model.load_data(values)
     assert isinstance(model.time, datetime.datetime)
+    assert isinstance(model.test1, int)
+    assert isinstance(model.test2, float)
+    assert isinstance(model.test3, str)
 
 
 def test_BaseModel_load_data_from_db(models, db_hash):
@@ -55,3 +60,6 @@ def test_BaseModel_load_data_from_db(models, db_hash):
     key = db_hash
     model.load_data(key, from_db=True)
     assert isinstance(model.time, datetime.datetime)
+    assert isinstance(model.test1, int)
+    assert isinstance(model.test2, float)
+    assert isinstance(model.test3, str)
