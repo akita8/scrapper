@@ -1,14 +1,10 @@
-"""Module contains base model class."""
+"""Module that contains base model class."""
 import abc
 from datetime import datetime
-import logging
-import logging.config
 from scrapper.database import redis_db
-from scrapper.utils import path
+from scrapper.utils import get_logger
 
-
-logging.config.fileConfig(path('logger.ini'))
-logger = logging.getLogger('models')
+logger = get_logger('models')
 
 
 class BaseModel(metaclass=abc.ABCMeta):
@@ -34,6 +30,11 @@ class BaseModel(metaclass=abc.ABCMeta):
     def type_(cls):
         """Class method that returns the model type."""
         return cls.__name__.lower()
+
+    @classmethod
+    def key_exists(cls, key):
+        """Method that checks if the hash key is already in the model set."""
+        return redis_db.sismember(cls.type_(), key)
 
     @staticmethod
     def convert(value):
@@ -66,14 +67,13 @@ class BaseModel(metaclass=abc.ABCMeta):
         should be a string key for the hash in the db.
         """
         if from_db:
+            logger.info('Loading data from db hash with key: {}'.format(data))
             data = redis_db.hgetall(data)
+        else:
+            logger.info('Loading data from dict: {}'.format(data))
         for key, value in data.items():
             value = self.convert(value)
             setattr(self, key, value)
-
-    def key_exists(self, key):
-        """Method that checks if the hash key is already in the model set."""
-        return redis_db.sismember(self.type_(), key)
 
     def update(self):
         """Method that updates (or creates) the hash data on the redis db.
@@ -81,8 +81,13 @@ class BaseModel(metaclass=abc.ABCMeta):
         It adds a new key to the model set if it's not present.
         """
         key = self.key()
+        type_ = self.type_()
+
+        logger.info('Updating redis hash: {}'.format(key))
         if not self.key_exists(key):
-            redis_db.sadd(self.type_(), key)
+            info = "Adding the hash key: {} to the redis set {}"
+            logger.info(info.format(key, type_))
+            redis_db.sadd(type_, key)
         redis_db.hmset(key, self.__dict__)
 
     def delete(self):
@@ -91,8 +96,13 @@ class BaseModel(metaclass=abc.ABCMeta):
         It also removes the key reference in the model set.
         """
         key = self.key()
+        type_ = self.type_()
+
         redis_db.delete(key)
+        logger.info('Deleting redis hash: {}'.format(key))
         redis_db.srem(self.type_(), key)
+        info = "Removing the hash key: {} to the redis set {}"
+        logger.info(info.format(key, type_))
 
     def __repr__(self):
         """Magic methods that returns a printable string of the model."""

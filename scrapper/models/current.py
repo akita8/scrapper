@@ -1,5 +1,8 @@
 """Module contains the classes used to store and serialize current data."""
 from scrapper.models.base import BaseModel
+from scrapper.utils import get_logger
+
+logger = get_logger('models')
 
 
 class Stock(BaseModel):
