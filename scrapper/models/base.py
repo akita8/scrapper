@@ -1,5 +1,6 @@
 """Module that contains base model class."""
 import abc
+from ast import literal_eval
 from datetime import datetime
 from scrapper.database import redis_db
 from scrapper.utils import get_logger
@@ -26,15 +27,14 @@ class BaseModel(metaclass=abc.ABCMeta):
     def key(self):
         """Abstract method that has to be overridden."""
 
+    def key_exists(self, key):
+        """Method that checks if the hash key is already in the model set."""
+        return redis_db.sismember(self.type_(), key)
+
     @classmethod
     def type_(cls):
         """Class method that returns the model type."""
         return cls.__name__.lower()
-
-    @classmethod
-    def key_exists(cls, key):
-        """Method that checks if the hash key is already in the model set."""
-        return redis_db.sismember(cls.type_(), key)
 
     @staticmethod
     def convert(value):
@@ -45,20 +45,19 @@ class BaseModel(metaclass=abc.ABCMeta):
         '1.0' --> 1.0
         '1' --> 1.0
         'string' --> 'string'
+        "[1, 1.0, 'string']" --> [1, 1.0, 'string']
         """
         datetime_pattern = '%Y-%m-%d %H:%M:%S.%f'
-        if isinstance(value, str):
-            try:
-                return int(value)
-            except ValueError:
+        try:
+            return literal_eval(value)
+        except (ValueError, SyntaxError):
+            if isinstance(value, str):
                 try:
-                    return float(value)
+                    return datetime.strptime(value, datetime_pattern)
                 except ValueError:
-                    try:
-                        return datetime.strptime(value, datetime_pattern)
-                    except ValueError:
-                        return value
-        return value
+                    return value
+            else:
+                return value
 
     def load_data(self, data, from_db=False):
         """Method that sets data as instance attributes from either a dict or the db.
@@ -78,7 +77,7 @@ class BaseModel(metaclass=abc.ABCMeta):
     def update(self):
         """Method that updates (or creates) the hash data on the redis db.
 
-        It adds a new key to the model set if it's not present.
+        It adds a new key to the model's set if it's not present.
         """
         key = self.key()
         type_ = self.type_()
@@ -106,8 +105,8 @@ class BaseModel(metaclass=abc.ABCMeta):
 
     def __repr__(self):
         """Magic methods that returns a printable string of the model."""
-        string = '<{}({})>'
+        representation = '<{}({})>'
         try:
-            return string.format(self.type_(), self.key())
+            return representation.format(self.type_(), self.key())
         except AttributeError:
-            return string.format(self.type_(), 'empty')
+            return representation.format(self.type_(), 'empty')
