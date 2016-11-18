@@ -31,10 +31,9 @@ class BaseModel(metaclass=abc.ABCMeta):
         """Method that checks if the hash key is already in the model set."""
         return redis_db.sismember(self.type_(), key)
 
-    @classmethod
-    def type_(cls):
+    def type_(self):
         """Class method that returns the model type."""
-        return cls.__name__.lower()
+        return self.__class__.__name__.lower()
 
     @staticmethod
     def convert(value):

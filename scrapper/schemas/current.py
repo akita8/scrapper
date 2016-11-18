@@ -1,29 +1,34 @@
 """Module that contains schema classes for current data."""
-from marshmallow import Schema, fields, validates, ValidationError
-from scrapper.models.current import Stock, Bond
+from marshmallow import Schema, fields
 
 
 class CurrentSchema(Schema):
-    pass
-
-
-class StockSchema(Schema):
-    """Schema for for serialization and validation of Stock objects."""
+    """Base schema with common fields and field validation for current data."""
 
     time = fields.DateTime()
-    name = fields.String()
-    symbol = fields.String()
-    tresholds = fields.List(fields.Float())
-    treshold = fields.Boolean()
+    name = fields.String(
+        required=True,
+        error_messages={'required': 'Name of the asset is required.'})
     price = fields.Float()
-    variation = fields.Float()
+    threshold_upper = fields.Float()
+    threshold_lower = fields.Float()
     progress = fields.Float()
 
-    @validates('tresholds')
-    def treshold_validation(self, tresholds):
-        """Schema validation for treshold field."""
-        for elem in tresholds:
-            if elem < 0:
-                raise ValidationError('Treshold must be positive')
+
+class StockSchema(CurrentSchema):
+    """Schema for for serialization and validation of Stock objects."""
+
+    symbol = fields.String(
+        required=True,
+        error_messages={'required': 'Symbol of the stock is required.'})
+    variation = fields.Float()
 
 
+class BondSchema(CurrentSchema):
+    """Schema for for serialization and validation of Bond objects."""
+
+    name = fields.String(
+        required=True,
+        error_messages={'required': 'Isin of the Bond is required.'})
+    yield_y = fields.Float()
+    yield_tot = fields.Float()
