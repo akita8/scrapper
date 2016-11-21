@@ -1,4 +1,2 @@
-# -*- coding: utf-8 -*-
-"""Create an application instance."""
-from scrapper.app import create_app
-app = create_app()
+"""Module needed to start gunicorn and celery."""
+from scrapper.app import app, celery  # noqa
