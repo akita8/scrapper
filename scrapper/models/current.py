@@ -2,7 +2,7 @@
 from scrapper.models.base import BaseModel
 from scrapper.utils import get_logger
 
-logger = get_logger('models')
+current_log = get_logger('models')
 
 
 class Stock(BaseModel):
