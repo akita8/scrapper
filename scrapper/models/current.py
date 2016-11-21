@@ -1,5 +1,5 @@
 """Classes for the management of current data."""
-from scrapper.models.base import BaseModel
+from .base import BaseModel
 from scrapper.utils import get_logger
 
 current_log = get_logger('models')

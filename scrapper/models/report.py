@@ -1,5 +1,5 @@
 """Documentation."""
-from scrapper.models.base import BaseModel
+from .base import BaseModel
 
 
 class StockReport(BaseModel):

@@ -29,11 +29,17 @@ class BaseModel(metaclass=abc.ABCMeta):
 
     def key_exists(self, key):
         """Method that checks if the hash key is already in the model set."""
-        return redis_db.sismember(self.type_(), key)
+        return redis_db.sismember(self.model_type(), key)
 
-    def type_(self):
-        """Method that returns the model type."""
-        return self.__class__.__name__.lower()
+    @classmethod
+    def model_type(cls):
+        """Class method that returns the model type."""
+        return cls.__name__.lower()
+
+    @classmethod
+    def model_keys(cls):
+        """Class method that returns the keys stored in the model set."""
+        return redis_db.smembers(cls.model_type)
 
     @staticmethod
     def convert(value):
@@ -79,7 +85,7 @@ class BaseModel(metaclass=abc.ABCMeta):
         It adds a new key to the model's set if it's not present.
         """
         key = self.key()
-        type_ = self.type_()
+        type_ = self.model_type()
 
         logger.info('Updating redis hash: {}'.format(key))
         if not self.key_exists(key):
@@ -94,18 +100,19 @@ class BaseModel(metaclass=abc.ABCMeta):
         It also removes the key reference in the model set.
         """
         key = self.key()
-        type_ = self.type_()
+        type_ = self.model_type()
 
         redis_db.delete(key)
         logger.info('Deleting redis hash: {}'.format(key))
-        redis_db.srem(self.type_(), key)
+        redis_db.srem(type_, key)
         info = "Removing the hash key: {} to the redis set {}"
         logger.info(info.format(key, type_))
 
     def __repr__(self):
         """Magic methods that returns a printable string of the model."""
+        type_ = self.model_type()
         representation = '<{}({})>'
         try:
-            return representation.format(self.type_(), self.key())
+            return representation.format(self.model_type(), self.key())
         except AttributeError:
-            return representation.format(self.type_(), 'empty')
+            return representation.format(self.model_type(), 'empty')
