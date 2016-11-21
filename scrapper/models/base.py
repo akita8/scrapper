@@ -1,4 +1,4 @@
-"""Module that contains base model class."""
+"""Base model class."""
 import abc
 from ast import literal_eval
 from datetime import datetime
@@ -11,15 +11,15 @@ logger = get_logger('models')
 class BaseModel(metaclass=abc.ABCMeta):
     """Class that implements the common model methods.
 
-    It is the application interface to the redis db.
+    It is the application main interface to the redis db.
     Subclasses must override the key method making it return
-    the correct pattern filled with the proper instance values.
+    the correct key pattern filled with the proper instance values.
     """
 
     def __init__(self):
         """It initializes the datetime variable.
 
-        The variable can be overwritten by load_data method.
+        The variable can be overwritten by the load_data method.
         """
         self.time = datetime.today()
 
@@ -32,7 +32,7 @@ class BaseModel(metaclass=abc.ABCMeta):
         return redis_db.sismember(self.type_(), key)
 
     def type_(self):
-        """Class method that returns the model type."""
+        """Method that returns the model type."""
         return self.__class__.__name__.lower()
 
     @staticmethod

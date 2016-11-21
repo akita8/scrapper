@@ -1,4 +1,4 @@
-"""Module that contains schema classes for current data."""
+"""Schema classes for current data."""
 from marshmallow import Schema, fields
 
 
