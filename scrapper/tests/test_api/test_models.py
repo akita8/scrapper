@@ -32,12 +32,10 @@ def test_models_update_and_delete(models):
     model, values = models
     model.load_data(values)
     model.update()
-    key = model.key()
     fields = values.keys()
-    keys_ = redis_db.hkeys(key)
-    assert redis_db.hgetall(key)
-    assert model.key_exists(key)
-    for key_ in keys_:
-        assert key_ in fields
+    hash_keys = redis_db.hkeys(model.key)
+    assert redis_db.hgetall(model.key)
+    for key in hash_keys:
+        assert key in fields
     model.delete()
-    assert not redis_db.hgetall(key)
+    assert not redis_db.hgetall(model.key)

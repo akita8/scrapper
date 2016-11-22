@@ -23,23 +23,19 @@ class BaseModel(metaclass=abc.ABCMeta):
         """
         self.time = datetime.today()
 
+    @property
     @abc.abstractmethod
     def key(self):
         """Abstract method that has to be overridden."""
 
-    def key_exists(self, key):
-        """Method that checks if the hash key is already in the model set."""
-        return redis_db.sismember(self.model_type(), key)
+    @property
+    def model_type(self):
+        """Method that returns the model type."""
+        return self.__class__.__name__.lower()
 
-    @classmethod
-    def model_type(cls):
-        """Class method that returns the model type."""
-        return cls.__name__.lower()
-
-    @classmethod
-    def model_keys(cls):
-        """Class method that returns the keys stored in the model set."""
-        return redis_db.smembers(cls.model_type)
+    def get_model_keys(self):
+        """Method that returns the keys stored in the model set."""
+        return redis_db.smembers(self.model_type)
 
     @staticmethod
     def convert(value):
@@ -71,10 +67,7 @@ class BaseModel(metaclass=abc.ABCMeta):
         should be a string key for the hash in the db.
         """
         if from_db:
-            logger.info('Loading data from db hash with key: {}'.format(data))
             data = redis_db.hgetall(data)
-        else:
-            logger.info('Loading data from dict: {}'.format(data))
         for key, value in data.items():
             value = self.convert(value)
             setattr(self, key, value)
@@ -84,35 +77,20 @@ class BaseModel(metaclass=abc.ABCMeta):
 
         It adds a new key to the model's set if it's not present.
         """
-        key = self.key()
-        type_ = self.model_type()
-
-        logger.info('Updating redis hash: {}'.format(key))
-        if not self.key_exists(key):
-            info = "Adding the hash key: {} to the redis set {}"
-            logger.info(info.format(key, type_))
-            redis_db.sadd(type_, key)
-        redis_db.hmset(key, self.__dict__)
+        if not redis_db.sismember(self.model_type, self.key):
+            redis_db.sadd(self.model_type, self.key)
+            info = "Hash key {} added to the redis set {}"
+            logger.info(info.format(self.key, self.model_type))
+        redis_db.hmset(self.key, self.__dict__)
+        logger.info('Redis hash with key {} updated'.format(self.key))
 
     def delete(self):
         """Method that removes the hash key and relative data from the redis db.
 
         It also removes the key reference in the model set.
         """
-        key = self.key()
-        type_ = self.model_type()
-
-        redis_db.delete(key)
-        logger.info('Deleting redis hash: {}'.format(key))
-        redis_db.srem(type_, key)
-        info = "Removing the hash key: {} to the redis set {}"
-        logger.info(info.format(key, type_))
-
-    def __repr__(self):
-        """Magic methods that returns a printable string of the model."""
-        type_ = self.model_type()
-        representation = '<{}({})>'
-        try:
-            return representation.format(self.model_type(), self.key())
-        except AttributeError:
-            return representation.format(self.model_type(), 'empty')
+        redis_db.delete(self.key)
+        logger.info('Redis hash {} deleted'.format(self.key))
+        redis_db.srem(self.model_type, self.key)
+        info = "Hash key {} removed from the redis set {}"
+        logger.info(info.format(self.key, self.model_type))
