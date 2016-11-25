@@ -8,38 +8,29 @@ from scrapper.schemas.current import StockSchema, BondSchema
 class CurrentAPI(MethodView):
     """Base api for current data."""
 
-    model_class = None
-    schema_class = None
+    __schema__ = None
 
     @property
     def model(self):
         """Method returns a model instance."""
-        return self.model_class()
-
-    @property
-    def schema(self):
-        """Method returns a schema instance."""
-        return self.model_class()
+        return self.schema.__model__()
 
     def get(self, key):
         """HTTP method GET."""
-        # maybe i can do this check directly in the schema
+        # needs to be adapted to changes to basemodel
         keys = self.model.get_model_keys()
-        passed, error = key_check(keys, key)
-        if not passed:
-            return error
-        elif key is None:
+        s = self.__schema__()
+        if key is None:
             models = []
             for key in keys:
                 m = self.model.load_data(key, from_db=True)
                 models.append(m)
-            # check marshmallow docs!
-            s = self.schema.dump(models, many=True)
-            return s.result
+            r = s.dump(models, many=True)
+            return r.result
         else:
             m = self.model.load_data(key, from_db=True)
-            s = self.schema.dump(m)
-            return s.result
+            r = s.dump(m)
+            return r.result if not r.errors else r.errors
 
     def post(self):
         """HTTP method POST."""
@@ -57,12 +48,10 @@ class CurrentAPI(MethodView):
 class CurrentStockAPI(CurrentAPI):
     """Api for current Stock data."""
 
-    model_class = Stock
-    schema_class = StockSchema
+    __schema__ = StockSchema
 
 
 class CurrentBondAPI(CurrentAPI):
     """Api for current Bond data."""
 
-    model_class = Bond
-    schema_class = BondSchema
+    __schema__ = BondSchema
