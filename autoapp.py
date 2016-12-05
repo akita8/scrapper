@@ -1,2 +1,2 @@
 """Module needed to start gunicorn and celery."""
-from scrapper.app import app, celery  # noqa
+from backend.app import app, celery  # noqa
