@@ -2,7 +2,9 @@
 import os
 import logging
 import logging.config
+from ast import literal_eval
 from celery import Celery
+from datetime import datetime
 
 
 def path(filename):
@@ -32,3 +34,25 @@ def make_celery(app):
                 return TaskBase.__call__(self, *args, **kwargs)
     celery.Task = ContextTask
     return celery
+
+
+def convert(value, datetime_pattern='%Y-%m-%d %H:%M:%S.%f'):
+    """Static method that converts strings to the proper type.
+
+    Examples:
+    '2016-11-14 11:49:09.0' --> datetime(2016, 11, 14, 11, 49, 9, 0)
+    '1.0' --> 1.0
+    '1' --> 1.0
+    'string' --> 'string'
+    "[1, 1.0, 'string']" --> [1, 1.0, 'string']
+    """
+    try:
+        return literal_eval(value)
+    except (ValueError, SyntaxError):
+        if isinstance(value, str):
+            try:
+                return datetime.strptime(value, datetime_pattern)
+            except ValueError:
+                return value
+        else:
+            return value

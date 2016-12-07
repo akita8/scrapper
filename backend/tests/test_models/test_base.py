@@ -1,6 +1,5 @@
-"""Test base module for models package."""
+"""Tests for base module of models package."""
 import pytest
-from datetime import datetime
 from backend.database import redis_db
 from backend.models.base import BaseModel
 
@@ -9,15 +8,6 @@ def test_BaseModel_raises_TypeError():
     """It tests that BaseModel can't be instantiated directly."""
     with pytest.raises(TypeError):
         BaseModel()
-
-
-def test_BaseModel_convert(testing_values):
-    """It tests the BaseModel static method convert."""
-    assert isinstance(BaseModel.convert(testing_values['time']), datetime)
-    assert isinstance(BaseModel.convert(testing_values['test1']), int)
-    assert isinstance(BaseModel.convert(testing_values['test2']), float)
-    assert isinstance(BaseModel.convert(testing_values['test3']), str)
-    assert isinstance(BaseModel.convert(testing_values['test4']), list)
 
 
 def test_models_from_db_raises_KeyError(models):

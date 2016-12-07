@@ -1,4 +1,4 @@
-"""Test current module for models package."""
+"""Tests for current module of models package."""
 
 
 def test_current_key(models):

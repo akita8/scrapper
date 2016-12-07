@@ -1,6 +1,8 @@
 """Schema classes for current data."""
-from marshmallow import Schema, fields, post_load, pre_dump, ValidationError
+from marshmallow import Schema, fields, post_load, pre_load, pre_dump
+from marshmallow import ValidationError
 from backend.models.current import Stock, Bond
+from backend.utils import convert
 
 
 class CurrentSchema(Schema):
@@ -20,12 +22,24 @@ class CurrentSchema(Schema):
     @property
     def model(self):
         """Method returns a model instance."""
-        return self.schema.__model__()
+        return self.__model__()
+
+    @pre_dump
+    def check_key(self, model):
+        """Pre dump method that raises validation error if key not in db."""
+        if hasattr(model, 'no_key'):
+            raise ValidationError('Key not present in db.', 'key')
+        return model
+
+    @pre_load
+    def convert_values(self, data):
+        """Pre load method that coverts the data values to the right types."""
+        return {k: convert(v) for k, v in data.items()}
 
     @post_load
     def make_model(self, data):
         """Post load method that returns a data filled model object."""
-        return self.__model__().load_data(data)
+        return self.__model__().from_dict(data)
 
 
 class StockSchema(CurrentSchema):
