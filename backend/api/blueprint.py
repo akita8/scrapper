@@ -3,9 +3,9 @@
 It also registers different method views to a bluprint.
 """
 from flask import Blueprint
-from .views.current import CurrentStockAPI, CurrentBondAPI
-# from .views.report import ReportStockAPI, ReportBondAPI
-# from .views.transaction import TransactionStockAPI, TransactionBondAPI
+from .views import CurrentStockAPI, CurrentBondAPI
+# from .views import ReportStockAPI, ReportBondAPI
+# from .views import TransactionStockAPI, TransactionBondAPI
 
 
 api = Blueprint('api', __name__)

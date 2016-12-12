@@ -10,13 +10,6 @@ def test_BaseModel_raises_TypeError():
         BaseModel()
 
 
-def test_models_from_db_raises_KeyError(models):
-    """It tests that from_db method raises keyerror for keys no in db."""
-    model, _, _ = models
-    with pytest.raises(KeyError):
-        model.from_db('keynotindb')
-
-
 def test_models_from_db(models, time):
     """It tests the models' method from db."""
     model, values, key = models
@@ -48,7 +41,7 @@ def test_models_update_and_delete(models):
     """It tests the models' methods update and delete."""
     model, values, key = models
     model.from_dict(values)
-    model.update()
+    model.update_db()
     fields = values.keys()
     hash_keys = redis_db.hkeys(model.key())
     assert redis_db.hgetall(key)

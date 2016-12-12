@@ -1,8 +1,9 @@
 """Base model class."""
 import abc
 from datetime import datetime
+
 from backend.database import redis_db
-from backend.utils import get_logger, convert
+from backend.utils import convert, get_logger
 
 logger = get_logger('models')
 
@@ -37,7 +38,7 @@ class BaseModel(metaclass=abc.ABCMeta):
 
     def get_model_keys(self):
         """Method that returns the keys stored in the model set."""
-        return redis_db.smembers(self.model_type)
+        return list(redis_db.smembers(self.model_type))
 
     def from_db(self, key=None, many=False):
         """Method populates the model with data from the redis db."""
@@ -62,7 +63,7 @@ class BaseModel(metaclass=abc.ABCMeta):
             self.__setattr__(k, convert(v))
         return self
 
-    def update(self):
+    def update_db(self):
         """Method that updates (or creates) the hash data on the redis db.
 
         It adds a new key to the model's set if it's not present.
@@ -79,8 +80,6 @@ class BaseModel(metaclass=abc.ABCMeta):
 
         It also removes the key reference in the model set.
         """
-        redis_db.delete(self.key())
-        logger.info('Redis hash {} deleted'.format(self.key()))
         redis_db.srem(self.model_type, self.key())
         info = "Hash key {} removed from the redis set {}"
         logger.info(info.format(self.key(), self.model_type))
