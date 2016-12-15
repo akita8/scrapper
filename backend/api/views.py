@@ -1,5 +1,4 @@
 """Method views for current data."""
-from celery import signature
 from flask import json, request
 from flask.views import MethodView
 
@@ -35,11 +34,13 @@ class BaseAPI(MethodView):
 
     def post(self):
         """HTTP method POST."""
+        from backend.tasks import single_stock_update
         validated_model, errors = self.__schema__.load(request.form)
         if errors:
             return json.dumps(errors), 400
+        validated_model.update_db()
         key = validated_model.key()
-        signature('tasks.testing', args=(key,))()
+        single_stock_update.delay(key)
         return json.dumps('{} CREATED'.format(repr(validated_model))), 201
 
     def delete(self, key):

@@ -22,9 +22,8 @@ def get_logger(name):
     return logging.getLogger(name)
 
 
-def make_celery():
+def make_celery(app):
     """Code taken from 'http://flask.pocoo.org/docs/0.11/patterns/celery/'."""
-    from app import app
     celery = Celery(app.import_name, broker=app.config['CELERY_BROKER_URL'])
     celery.conf.update(app.config)
     TaskBase = celery.Task
